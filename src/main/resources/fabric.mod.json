@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "cobblemon-field-moves",
-  "version": "1.7.3-fabric-1.2.0",
+  "version": "${version}",
   "name": "Cobblemon Field Moves",
   "description": "Adds the in-world effects of field moves and abilities to Cobblemon.",
   "authors": [
@@ -19,7 +19,10 @@
   },
   "depends": {
     "java": ">=21",
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "fabric-language-kotlin": ">=1.14.0",
     "minecraft": "1.21.1",
-    "cobblemon": ">=1.7.0"
+    "cobblemon": ">=1.8.0"
   }
 }

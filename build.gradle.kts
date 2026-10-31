@@ -1,18 +1,21 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("java")
-    id("fabric-loom") version("1.9-SNAPSHOT")
-    kotlin("jvm") version ("2.1.0")
+    id("fabric-loom") version("1.13-SNAPSHOT")
+    kotlin("jvm") version ("2.4.21")
 }
 
 group = property("maven_group")!!
 version = property("mod_version")!!
 
+base {
+    archivesName.set(property("archives_base_name").toString())
+}
+
 repositories {
-    mavenLocal()
     mavenCentral()
-    maven("https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/")
     maven("https://maven.impactdev.net/repository/development/")
-    maven("https://api.modrinth.com/maven")
 }
 
 dependencies {
@@ -30,20 +33,29 @@ dependencies {
     modImplementation("com.cobblemon:fabric:${property("cobblemon_version")}")
 }
 
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+    withSourcesJar()
+}
+
+kotlin {
+    jvmToolchain(21)
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_21)
+    }
+}
+
 tasks {
     processResources {
-        inputs.property("version", project.version)
+        val modVersion = project.version.toString()
+        inputs.property("version", modVersion)
 
         filesMatching("fabric.mod.json") {
-            expand(mutableMapOf("version" to project.version))
+            expand("version" to modVersion)
         }
     }
 
     jar {
         from("LICENSE")
-    }
-
-    compileKotlin {
-        kotlinOptions.jvmTarget = "21"
     }
 }

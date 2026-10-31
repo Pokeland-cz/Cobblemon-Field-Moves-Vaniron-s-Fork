@@ -1,62 +1,31 @@
 package us.timinc.mc.cobblemon.fieldmoves.listeners
 
-import com.cobblemon.mod.common.Cobblemon
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
 import com.cobblemon.mod.common.api.events.pokemon.PokemonCapturedEvent
-import com.cobblemon.mod.common.pokemon.Gender
 import us.timinc.mc.cobblemon.fieldmoves.CobblemonFieldMoves.config
 import us.timinc.mc.cobblemon.fieldmoves.CobblemonFieldMoves.debug
-import kotlin.random.Random.Default.nextDouble
+import us.timinc.mc.cobblemon.fieldmoves.abilities.FieldAbilities
+import us.timinc.mc.cobblemon.fieldmoves.config.Trigger
 
+/** Applies field abilities to Pokémon at the moment they are caught (trigger = "capture"). */
 object FieldMoveCaptureListener {
-
-    private val GENDER_BENDER = mapOf(
-        Gender.MALE to Gender.FEMALE,
-        Gender.FEMALE to Gender.MALE
-    )
-
     fun register() {
-        CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.NORMAL) { event ->
-            handleCapture(event)
-        }
+        CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.NORMAL, ::handleCapture)
     }
 
     private fun handleCapture(event: PokemonCapturedEvent) {
-        val player = event.player
-        val capturedPokemon = event.pokemon
+        if (config.triggerMode != Trigger.CAPTURE) return
+        val captured = event.pokemon
+        val leader = FieldAbilities.leaderOf(event.player) ?: return
 
-        // 1. Fetch the leader (first slot) safely
-        val playerPartyStore = Cobblemon.storage.getParty(player)
-        val leader = playerPartyStore.firstOrNull() ?: return
-        val leaderAbility = leader.ability?.name ?: return
-
-        // 2. Branch logic based on Ability
-        when (leaderAbility) {
-            "synchronize" -> {
-                if (nextDouble() < config.synchronizeChance) {
-                    debug("Synchronizing nature to ${leader.nature.name.path}")
-                    capturedPokemon.nature = leader.nature
-                }
-            }
-
-            "cutecharm" -> {
-                val leaderGender = leader.gender
-                val targetGender = GENDER_BENDER[leaderGender] ?: return
-
-                // Check if the species can actually be the target gender
-                val species = capturedPokemon.species
-                val canBeTarget = when (targetGender) {
-                    Gender.MALE -> species.maleRatio > 0f
-                    Gender.FEMALE -> species.maleRatio < 1f
-                    else -> false
-                }
-
-                if (canBeTarget && nextDouble() < config.cuteCharmChance) {
-                    debug("Cute Charm triggered! Changing gender to $targetGender")
-                    capturedPokemon.gender = targetGender
-                }
-            }
+        FieldAbilities.rollSynchronize(leader)?.let { nature ->
+            debug { "Synchronize: caught ${captured.species.name} nature -> ${nature.name.path}" }
+            captured.nature = nature
+        }
+        FieldAbilities.rollCuteCharm(leader, captured.species)?.let { gender ->
+            debug { "Cute Charm: caught ${captured.species.name} gender -> $gender" }
+            captured.gender = gender
         }
     }
 }
